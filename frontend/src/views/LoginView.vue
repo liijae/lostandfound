@@ -23,7 +23,7 @@ import { useAuthStore } from '@/stores/auth'
 import api from '@/composables/useApi'
 
 const form = ref({
-  email: '',
+  username: '',
   password: ''
 })
 
@@ -33,18 +33,16 @@ const authStore = useAuthStore()
 const handleSubmit = async () => {
   try {
     const response = await api.post('/auth/login', {
-      email: form.value.email.trim().toLowerCase(), // 标准化邮箱格式
+      username: form.value.username.trim(),
       password: form.value.password
-    }, {
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
     })
     
     authStore.setToken(response.data.token)
     authStore.setUser(response.data.user)
     router.push('/profile') // 明确跳转到个人中心
+    
+    console.log('前端传入:', { username: form.value.username.trim(), password: form.value.password })
+    console.log('查找到的用户:', response.data.user)
     
   } catch (error) {
     let message = '登录失败'

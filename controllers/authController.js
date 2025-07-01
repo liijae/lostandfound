@@ -37,30 +37,19 @@ exports.register = async (req, res) => {
 // 用户登录
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    
-    // 检查用户是否存在
-    const user = await User.findOne({ email });
+    // 用用户名查找用户
+    const user = await User.findOne({ username: username });
     if (!user) {
-      return res.status(401).json({ message: '无效的邮箱或密码' });
+      return res.status(401).json({ message: '无效的用户名或密码' });
     }
 
     // 验证密码
-const isMatch = await user.comparePassword(password);
-console.log('======= 密码验证调试 =======');
-console.log('客户端传入密码:', password);
-console.log('数据库存储哈希:', user.password);
-console.log('比对结果:', isMatch);
-
-if (!isMatch) {
-  console.log('密码不匹配原因:', {
-    inputLength: password.length,
-    hashLength: user.password.length,
-    hashPrefix: user.password.substring(0, 10)
-  });
-  return res.status(401).json({ message: '无效的邮箱或密码' });
-}
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: '无效的用户名或密码' });
+    }
 
     // 生成Token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
