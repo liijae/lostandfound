@@ -5,20 +5,26 @@ const postController = require('../controllers/postController');
 // 创建帖子
 exports.createPost = async (req, res) => {
   try {
-    const { type, title, description, location, images, contact } = req.body;
-    
+    const { type, title, description, location, contact, date } = req.body; // 添加解构description和date
+    if (!type || !title || !location) {
+      return res.status(400).json({ message: '类型、标题、地点为必填项' });
+    }
+    // 处理图片
+    const images = req.files ? req.files.map(file => file.path) : [];
+    // 兼容前端未传date时自动用当前时间
     const post = await Post.create({
       type,
       title,
-      description,
+      description: description || '', // 处理可能的undefined
       location,
-      images: req.files?.map(file => file.path) || images || [],
-      contact,
-      author: req.user._id  // 统一使用 author 字段
+      contact: contact || '', // 处理可能的undefined
+      date: date ? new Date(date) : Date.now(), // 正确处理日期格式
+      images,
+      user: req.user._id // 确保字段名与模型一致
     });
-
     res.status(201).json(post);
   } catch (error) {
+    console.error('发布帖子错误:', error); // 打印详细错误
     res.status(500).json({ message: error.message });
   }
 };
@@ -26,7 +32,7 @@ exports.createPost = async (req, res) => {
 // 获取帖子列表
 exports.getPosts = async (req, res) => {
   try {
-    const { type, keyword, page = 1, limit = 10 } = req.query;
+    const { type, keyword, page = 1, limit = 10, sort = '-createdAt' } = req.query;
     const query = {};
     
     if (type) query.type = type;
@@ -37,11 +43,18 @@ exports.getPosts = async (req, res) => {
       ];
     }
 
+    // 动态排序
+    let sortOption = {};
+    if (sort.startsWith('-')) {
+      sortOption[sort.slice(1)] = -1;
+    } else {
+      sortOption[sort] = 1;
+    }
     const posts = await Post.find(query)
-      .sort({ createdAt: -1 })
+      .sort(sortOption)
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('author', 'name email');
+      .populate('user', 'username email');
 
     res.json(posts);
   } catch (error) {
@@ -52,7 +65,7 @@ exports.getPosts = async (req, res) => {
 // 获取用户自己的帖子
 exports.getMyPosts = async (req, res) => {
   try {
-    const posts = await Post.find({ author: req.user._id })
+    const posts = await Post.find({ user: req.user._id })
       .sort('-createdAt')
       .populate('author', 'name');
     res.json(posts);

@@ -79,7 +79,7 @@ const viewDetail = (id) => {
 }
 
 const goToCreate = () => {
-  router.push('/post/create')
+  router.push('/posts/create')
 }
 
 // 初始加载

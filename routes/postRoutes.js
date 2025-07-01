@@ -3,7 +3,7 @@ const router = express.Router();
 const postController = require('../controllers/postController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const uploadMiddleware = require('../middlewares/uploadMiddleware');
-
+const upload = require('../middlewares/uploadMiddleware'); 
 // 帖子相关路由
 router.post('/', 
   authMiddleware, 
