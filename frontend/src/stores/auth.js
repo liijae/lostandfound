@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
+import api from '@/composables/useApi'
 
 export const useAuthStore = defineStore('auth', () => {
   // 增强版安全读取方法
@@ -53,7 +54,7 @@ export const useAuthStore = defineStore('auth', () => {
   // API 请求方法（添加请求取消功能）
   const apiRequest = async (url, data) => {
     try {
-      const response = await axios.post(`http://localhost:5000/api/auth/${url}`, data)
+      const response = await api.post(`/${url}`, data)
       return response.data
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message
@@ -64,7 +65,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 用户注册
   const register = async (formData) => {
-    const data = await apiRequest('register', formData)
+    const data = await apiRequest('auth/register', formData)
     token.value = data.token
     user.value = data.user
     persistAuth()
@@ -73,7 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 用户登录
   const login = async (credentials) => {
-    const data = await apiRequest('login', {
+    const data = await apiRequest('auth/login', {
       email: credentials.email.toLowerCase().trim(), // 邮箱标准化
       password: credentials.password
     })

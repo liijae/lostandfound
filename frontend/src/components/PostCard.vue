@@ -8,9 +8,9 @@
     
     <div class="card-image-container">
       <img 
-        v-if="post.images?.length" 
-        :src="post.images[0]" 
-        class="card-image"
+      v-if="post.images?.length" 
+    :src="getFullImageUrl(post.images[0])" 
+    class="card-image"
       >
       <div v-else class="image-placeholder">
         <i class="icon-camera"></i>
@@ -55,6 +55,14 @@ const formatTime = (date) => {
 const truncate = (text, length) => {
   return text.length > length ? text.substring(0, length) + '...' : text
 }
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://10.122.193.212:5000';
+const getFullImageUrl = (imgPath) => {
+  if (!imgPath) return '';
+  if (imgPath.startsWith('http')) return imgPath;
+  const cleanPath = imgPath.startsWith('/') ? imgPath : `/${imgPath}`;
+  return BASE_URL + cleanPath;
+};
 </script>
 
 <style scoped>

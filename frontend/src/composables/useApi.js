@@ -1,8 +1,10 @@
 import axios from 'axios'
 
+console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL); // 临时调试
+
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api', // 根据你的后端地址修改
-  timeout: 5000
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  timeout: 50000
 })
 
 // 请求拦截器
