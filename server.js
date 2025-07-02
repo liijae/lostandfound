@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const mongoose = require('mongoose'); // 需要添加这行
 const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 const app = express();
 
 // 数据库连接
@@ -59,6 +60,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // 业务路由
 app.use('/api/auth', authRoutes)
 app.use('/api/posts', postRoutes)
+app.use('/api/messages', messageRoutes)
 
 
 // ============ 增强的错误处理 ============

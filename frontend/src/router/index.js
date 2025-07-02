@@ -11,6 +11,7 @@ const PostListView = () => import('../views/PostListView.vue')
 const PostCreateView = () => import('../views/PostCreateView.vue')
 const ProfileView = () => import('../views/ProfileView.vue')
 const PostEditView = () => import('../views/PostEditView.vue')
+const ChatView = () => import('../views/ChatView.vue')
 
 const routes = [
   {
@@ -51,6 +52,12 @@ const routes = [
     path: '/posts/edit/:id',
     name: 'post-edit',
     component: PostEditView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/chat/:userId',
+    name: 'chat',
+    component: ChatView,
     meta: { requiresAuth: true }
   },
   {

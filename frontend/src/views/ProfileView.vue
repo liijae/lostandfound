@@ -20,6 +20,7 @@
         @click="activeTab = tab.value"
       >
         {{ tab.label }}
+        <span v-if="tab.value === 'messages' && messageStore.unreadCount > 0" class="badge">{{ messageStore.unreadCount }}</span>
       </button>
     </div>
 
@@ -43,48 +44,49 @@
         </div>
       </div>
 
-      <!-- 账号设置 -->
-      <div v-if="activeTab === 'settings'" class="settings">
-        <h3>账号设置</h3>
-        <form @submit.prevent="updateProfile">
-          <div class="form-group">
-            <label>用户名</label>
-            <input v-model="profileForm.username" type="text">
-          </div>
-          <div class="form-group">
-            <label>电子邮箱</label>
-            <input v-model="profileForm.email" type="email">
-          </div>
-          <button type="submit">保存更改</button>
-        </form>
+      <!-- 我的消息 -->
+      <div v-if="activeTab === 'messages'" class="message-list">
+        <div v-if="loadingConvs" class="loading">加载中...</div>
+        <div v-else-if="conversations.length === 0" class="empty">
+          <p>暂无会话</p>
+        </div>
+        <ul v-else>
+          <li v-for="conv in conversations" :key="conv._id">
+            <router-link :to="`/chat/${conv.from._id === authStore.user._id ? conv.to._id : conv.from._id}`">
+              与 {{ conv.from._id === authStore.user._id ? conv.to.username : conv.from.username }} 的对话
+              <span class="msg-preview">{{ conv.content }}</span>
+              <span class="msg-time">{{ formatDate(conv.createdAt) }}</span>
+              <span v-if="conv.unread > 0" class="badge">{{ conv.unread }}</span>
+            </router-link>
+          </li>
+        </ul>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import PostItem from '@/components/PostItem.vue'
 import api from '@/composables/useApi'
 import { format } from 'date-fns'
 import { useRouter } from 'vue-router'
+import { useMessageStore } from '@/stores/messages'
 
 const authStore = useAuthStore()
 const activeTab = ref('posts')
 const myPosts = ref([])
 const loading = ref(false)
 const router = useRouter()
+const conversations = ref([])
+const loadingConvs = ref(false)
+const messageStore = useMessageStore()
 
 const tabs = [
   { label: '我的帖子', value: 'posts' },
-  { label: '账号设置', value: 'settings' }
+  { label: '我的消息', value: 'messages' }
 ]
-
-const profileForm = ref({
-  username: authStore.user?.username || '',
-  email: authStore.user?.email || ''
-})
 
 // 修改获取帖子的方法
 const fetchMyPosts = async () => {
@@ -138,16 +140,26 @@ const handleMarkFound = async (postId) => {
   }
 };
 
-// 更新个人信息
-const updateProfile = async () => {
-  const res = await api.put('/users/profile', profileForm.value)
-  authStore.setUser(res.data.user)
-}
-
 // 格式化日期
 const formatDate = (dateString) => {
   return dateString ? format(new Date(dateString), 'yyyy-MM-dd') : '未知'
 }
+
+const fetchConversations = async () => {
+  try {
+    loadingConvs.value = true
+    const res = await api.getConversationsWithUnread()
+    conversations.value = res.data
+  } catch (e) {
+    conversations.value = []
+  } finally {
+    loadingConvs.value = false
+  }
+}
+
+watch(activeTab, (val) => {
+  if (val === 'messages') fetchConversations()
+})
 
 onMounted(fetchMyPosts)
 </script>
@@ -259,5 +271,35 @@ button[type="submit"] {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.message-list ul {
+  list-style: none;
+  padding: 0;
+}
+.message-list li {
+  margin-bottom: 12px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 8px;
+}
+.msg-preview {
+  color: #888;
+  margin-left: 8px;
+}
+.msg-time {
+  float: right;
+  color: #bbb;
+  font-size: 12px;
+}
+
+.badge {
+  background: #ff5b5b;
+  color: #fff;
+  border-radius: 8px;
+  padding: 0 6px;
+  font-size: 12px;
+  margin-left: 4px;
+  position: relative;
+  top: -2px;
 }
 </style>

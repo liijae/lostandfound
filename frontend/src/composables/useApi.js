@@ -16,4 +16,11 @@ api.interceptors.request.use(config => {
   return config
 })
 
+api.getConversations = () => api.get('/messages')
+api.getMessagesWithUser = (userId) => api.get(`/messages/with/${userId}`)
+api.sendMessage = (to, content) => api.post('/messages', { to, content })
+api.getUnreadCount = () => api.get('/messages/unread/count')
+api.getConversationsWithUnread = () => api.get('/messages/with-unread')
+api.markAsRead = (userId) => api.post(`/messages/read/${userId}`)
+
 export default api

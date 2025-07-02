@@ -63,7 +63,8 @@ const fetchPosts = async () => {
   try {
     loading.value = true
     const params = {
-      sort: sortOrder.value
+      sort: sortOrder.value,
+      limit: 100 // 设置更大的限制或设为0表示无限制
     }
     if (filterType.value) params.type = filterType.value
     

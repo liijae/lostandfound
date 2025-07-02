@@ -30,7 +30,20 @@
         </span>
         <span class="contact">
           <i class="icon-user"></i>
-          {{ post.contact || '匿名' }}
+          <router-link
+            v-if="isAuthenticated && post.user && post.user._id && post.user._id !== currentUserId"
+            :to="`/chat/${post.user._id}`"
+            @click.stop
+            class="chat-link"
+          >
+            {{ post.user.username || '匿名' }}
+          </router-link>
+          <span v-else-if="isAuthenticated && post.user && post.user._id === currentUserId">
+            {{ post.user.username || '匿名' }}（我）
+          </span>
+          <span v-else>
+            <a href="#" @click.stop.prevent="goLogin">{{ post.user?.username || '匿名' }}</a>
+          </span>
         </span>
       </div>
     </div>
@@ -39,6 +52,9 @@
 
 <script setup>
 import { format } from 'date-fns'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
+import { useMessageStore } from '@/stores/messages'
 
 const props = defineProps({
   post: {
@@ -64,6 +80,16 @@ const getFullImageUrl = (imgPath) => {
   const cleanPath = imgPath.startsWith('/') ? imgPath : `/${imgPath}`;
   return BASE_URL + cleanPath;
 };
+
+const authStore = useAuthStore()
+const router = useRouter()
+const isAuthenticated = authStore.isAuthenticated
+const currentUserId = authStore.user?._id
+const goLogin = () => {
+  router.push('/login')
+}
+
+const messageStore = useMessageStore()
 </script>
 
 <style scoped>
@@ -192,5 +218,12 @@ const getFullImageUrl = (imgPath) => {
   font-size: 13px;
   z-index: 2;
   box-shadow: 0 2px 8px rgba(66,185,131,0.08);
+}
+
+.chat-link {
+  color: #42b983;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-left: 2px;
 }
 </style>
