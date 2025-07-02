@@ -8,7 +8,7 @@ const postSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
   images: [{ type: String }],
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  status: { type: String, enum: ['open', 'resolved'], default: 'open' },
+  status: { type: String, enum: ['open', 'found'], default: 'open' },
   contact: { type: String }
 }, { timestamps: true });
 

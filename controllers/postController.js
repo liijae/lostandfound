@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Post = require('../models/Post');
 const authMiddleware = require('../middlewares/authMiddleware');
 const postController = require('../controllers/postController');
@@ -67,46 +68,71 @@ exports.getMyPosts = async (req, res) => {
   try {
     const posts = await Post.find({ user: req.user._id })
       .sort('-createdAt')
-      .populate('author', 'name');
+      .populate('user', 'username email');
     res.json(posts);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// 更新帖子
+// 更新帖子（编辑/标记状态）
 exports.updatePost = async (req, res) => {
   try {
-    const post = await Post.findOneAndUpdate(
-      { _id: req.params.id, author: req.user._id },
-      req.body,
-      { new: true, runValidators: true }
-    );
-    
-    if (!post) {
-      return res.status(404).json({ message: '帖子不存在或无权修改' });
+    const updates = Object.keys(req.body)
+    const allowedUpdates = ['title', 'description', 'location', 'status', 'images', 'contact']
+    const isValidOperation = updates.every(update => allowedUpdates.includes(update))
+
+    if (!isValidOperation) {
+      return res.status(400).json({ message: '无效的更新字段' })
     }
 
-    res.json(post);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    const post = await Post.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id }, // 只允许作者修改
+      req.body,
+      { new: true, runValidators: true }
+    )
+
+    if (!post) {
+      return res.status(404).json({ message: '帖子不存在或无权修改' })
+    }
+
+    res.json(post)
+  } catch (error) {
+    console.error('更新帖子出错:', error);
+    res.status(500).json({ message: error.message })
   }
-};
+}
 
 // 删除帖子
 exports.deletePost = async (req, res) => {
   try {
+    console.log('当前用户ID:', req.user._id, '尝试删除帖子ID:', req.params.id);
     const post = await Post.findOneAndDelete({
       _id: req.params.id,
-      author: req.user._id
-    });
+      user: req.user._id // 确保只能删除自己的帖子
+    })
 
     if (!post) {
-      return res.status(404).json({ message: '帖子不存在或无权删除' });
+      return res.status(404).json({ message: '帖子不存在或无权删除' })
     }
 
-    res.json({ message: '帖子已删除' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.log('删除帖子ID:', post._id)
+
+    res.json({ message: '帖子已删除' })
+  } catch (error) {
+    res.status(500).json({ message: error.message })
+  }
+}
+
+// 获取单个帖子详情
+exports.getPostById = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id).populate('user', 'username email');
+    if (!post) {
+      return res.status(404).json({ message: '帖子不存在' });
+    }
+    res.json(post);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

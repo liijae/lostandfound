@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import PostCard from '@/components/PostCard.vue'
 import api from '@/composables/useApi'
@@ -84,6 +84,7 @@ const goToCreate = () => {
 
 // 初始加载
 onMounted(fetchPosts)
+onActivated(fetchPosts)
 </script>
 
 <style scoped>

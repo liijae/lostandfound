@@ -1,37 +1,34 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import axios from 'axios'
 import api from '@/composables/useApi'
 
 export const useAuthStore = defineStore('auth', () => {
-  // 增强版安全读取方法
+  // 安全读取localStorage
   const getSafeLocalStorage = (key) => {
     try {
       const item = localStorage.getItem(key)
-      // 显式排除 undefined/null/空字符串
       if (item === null || item === 'undefined' || item === 'null' || item === '') {
-        localStorage.removeItem(key) // 自动清理无效数据
+        localStorage.removeItem(key)
         return null
       }
       return JSON.parse(item)
     } catch (error) {
       console.error(`解析 localStorage ${key} 失败:`, error)
-      localStorage.removeItem(key) // 解析失败时清理数据
+      localStorage.removeItem(key)
       return null
     }
   }
 
-  // 初始化状态（添加类型提示）
+  // 状态
   const token = ref(localStorage.getItem('token') || null)
   const user = ref(getSafeLocalStorage('user'))
 
   // 计算属性
   const isAuthenticated = computed(() => !!token.value)
 
-  // 增强版持久化方法
+  // 持久化方法
   const persistAuth = () => {
     try {
-      // 条件性存储，避免存储无效值
       if (token.value) {
         localStorage.setItem('token', token.value)
       } else {
@@ -45,13 +42,12 @@ export const useAuthStore = defineStore('auth', () => {
       }
     } catch (error) {
       console.error('保存认证状态失败:', error)
-      // 存储失败时清理所有认证数据
       localStorage.removeItem('token')
       localStorage.removeItem('user')
     }
   }
 
-  // API 请求方法（添加请求取消功能）
+  // API请求封装
   const apiRequest = async (url, data) => {
     try {
       const response = await api.post(`/${url}`, data)
@@ -75,7 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
   // 用户登录
   const login = async (credentials) => {
     const data = await apiRequest('auth/login', {
-      email: credentials.email.toLowerCase().trim(), // 邮箱标准化
+      email: credentials.email.toLowerCase().trim(),
       password: credentials.password
     })
     token.value = data.token
@@ -88,25 +84,43 @@ export const useAuthStore = defineStore('auth', () => {
   const logout = () => {
     token.value = null
     user.value = null
-    persistAuth() // 使用统一的持久化方法
+    persistAuth()
   }
 
-  // 手动设置 Token（用于特殊场景）
+  // 设置Token
   const setToken = (newToken) => {
     token.value = newToken
-    persistAuth() // 使用统一的持久化方法
+    persistAuth()
   }
 
-  // 手动设置用户数据
+  // 设置用户数据
   const setUser = (userData) => {
     user.value = userData
-    persistAuth() // 使用统一的持久化方法
+    persistAuth()
   }
 
-  // 初始化方法（应用启动时调用）
-  const initialize = () => {
+  // 获取用户信息
+  const fetchUserProfile = async () => {
+    try {
+      const response = await api.get('/auth/profile')
+      setUser(response.data.user)
+      return response.data.user
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+      logout()
+      throw error
+    }
+  }
+
+  // 初始化方法（异步）
+  const initialize = async () => {
     token.value = localStorage.getItem('token')
     user.value = getSafeLocalStorage('user')
+    
+    if (token.value && !user.value) {
+      await fetchUserProfile()
+    }
+    
     console.debug('AuthStore 初始化完成', { 
       isAuthenticated: isAuthenticated.value 
     })
@@ -121,6 +135,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     setToken,
     setUser,
-    initialize
+    initialize,
+    fetchUserProfile
   }
 })

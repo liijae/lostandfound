@@ -4,7 +4,8 @@
     :class="post.type"
     @click.stop="$emit('click')"
   >
-    <div class="card-badge">{{ post.type === 'lost' ? '寻物' : '招领' }}</div>
+    <span v-if="post.status === 'found'" class="post-status-tag-abs">已找回</span>
+    <div class="card-badge-right">{{ post.type === 'lost' ? '寻物' : '招领' }}</div>
     
     <div class="card-image-container">
       <img 
@@ -84,19 +85,20 @@ const getFullImageUrl = (imgPath) => {
 }
 
 /* 类型角标 */
-.card-badge {
+.card-badge-right {
   position: absolute;
   top: 12px;
   right: 12px;
-  padding: 4px 10px;
+  background: #ff5b5b;
+  color: #fff;
   border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-  color: white;
+  padding: 2px 10px;
+  font-size: 13px;
   z-index: 2;
+  box-shadow: 0 2px 8px rgba(255,91,91,0.08);
 }
-.lost .card-badge { background: rgba(255, 77, 79, 0.9); }
-.found .card-badge { background: rgba(82, 196, 26, 0.9); }
+.lost .card-badge-right { background: rgba(255, 77, 79, 0.9); }
+.found .card-badge-right { background: rgba(82, 196, 26, 0.9); }
 
 /* 图片区域 */
 .card-image-container {
@@ -177,5 +179,18 @@ const getFullImageUrl = (imgPath) => {
 .card-footer i {
   margin-right: 4px;
   font-size: 14px;
+}
+
+.post-status-tag-abs {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #42b983;
+  color: #fff;
+  border-radius: 4px;
+  padding: 2px 10px;
+  font-size: 13px;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(66,185,131,0.08);
 }
 </style>

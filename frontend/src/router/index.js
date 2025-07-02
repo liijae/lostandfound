@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { setupAuthGuard } from './authGuard'
 
 // 静态导入（适合核心页面）
 import HomeView from '../views/HomeView.vue'
@@ -10,6 +10,7 @@ import RegisterView from '../views/RegisterView.vue'
 const PostListView = () => import('../views/PostListView.vue')
 const PostCreateView = () => import('../views/PostCreateView.vue')
 const ProfileView = () => import('../views/ProfileView.vue')
+const PostEditView = () => import('../views/PostEditView.vue')
 
 const routes = [
   {
@@ -47,6 +48,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/posts/edit/:id',
+    name: 'post-edit',
+    component: PostEditView,
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }
@@ -60,18 +67,7 @@ const router = createRouter({
   }
 })
 
-router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore()
-  
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    return next({ name: 'login', query: { redirect: to.fullPath } })
-  }
-  
-  if (to.meta.requiresGuest && authStore.isAuthenticated) {
-    return next({ name: 'home' })
-  }
-  
-  next()
-})
+// 设置路由守卫
+setupAuthGuard(router)
 
 export default router

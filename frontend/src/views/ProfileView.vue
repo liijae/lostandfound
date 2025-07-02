@@ -3,11 +3,11 @@
     <h1>个人中心</h1>
     
     <div class="profile-header">
-      <div class="avatar">
+      <!-- <div class="avatar">
         <img :src="userAvatar" alt="用户头像">
-      </div>
+      </div> -->
       <div class="user-info">
-        <h2>{{ authStore.user?.name || '未登录用户' }}</h2>
+        <h2>{{ authStore.user?.username || '未登录用户' }}</h2>
         <p>注册时间：{{ formatDate(authStore.user?.createdAt) }}</p>
       </div>
     </div>
@@ -49,7 +49,7 @@
         <form @submit.prevent="updateProfile">
           <div class="form-group">
             <label>用户名</label>
-            <input v-model="profileForm.name" type="text">
+            <input v-model="profileForm.username" type="text">
           </div>
           <div class="form-group">
             <label>电子邮箱</label>
@@ -68,11 +68,13 @@ import { useAuthStore } from '@/stores/auth'
 import PostItem from '@/components/PostItem.vue'
 import api from '@/composables/useApi'
 import { format } from 'date-fns'
+import { useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
 const activeTab = ref('posts')
 const myPosts = ref([])
 const loading = ref(false)
+const router = useRouter()
 
 const tabs = [
   { label: '我的帖子', value: 'posts' },
@@ -80,43 +82,61 @@ const tabs = [
 ]
 
 const profileForm = ref({
-  name: authStore.user?.name || '',
+  username: authStore.user?.username || '',
   email: authStore.user?.email || ''
 })
 
-const userAvatar = computed(() => {
-  return authStore.user?.avatar || '@/assets/default-avatar.png'
-})
-
-// 获取用户帖子
+// 修改获取帖子的方法
 const fetchMyPosts = async () => {
   try {
-    loading.value = true
-    const res = await api.get('/posts/my-posts')
-    myPosts.value = res.data
+    loading.value = true;
+    // 确保传递正确的用户ID
+    const res = await api.get('/posts/my-posts', {
+      params: { userId: authStore.user?._id }
+    });
+    myPosts.value = res.data;
+  } catch (error) {
+    console.error('获取帖子失败:', error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
+
+// 添加用户信息检查
+onMounted(() => {
+  if (!authStore.user) {
+    router.push('/login');
+  } else {
+    fetchMyPosts();
+  }
+});
 
 // 编辑帖子
 const handleEditPost = (postId) => {
-  router.push(`/posts/edit/${postId}`)
-}
+  router.push(`/posts/edit/${postId}`);
+};
 
 // 删除帖子
 const handleDeletePost = async (postId) => {
-  if (confirm('确定要删除这个帖子吗？')) {
-    await api.delete(`/posts/${postId}`)
-    fetchMyPosts()
+  if (!confirm('确定要删除这个帖子吗？')) return;
+  try {
+    await api.delete(`/posts/${postId}`);
+    fetchMyPosts();
+  } catch (error) {
+    fetchMyPosts(); // 404或网络错误时也刷新
+    alert('删除失败: ' + (error.response?.data?.message || error.message));
   }
 }
 
 // 标记为已找回
 const handleMarkFound = async (postId) => {
-  await api.patch(`/posts/${postId}`, { status: 'found' })
-  fetchMyPosts()
-}
+  try {
+    await api.patch(`/posts/${postId}`, { status: 'found' });
+    fetchMyPosts();
+  } catch (error) {
+    alert('标记失败: ' + (error.response?.data?.message || error.message));
+  }
+};
 
 // 更新个人信息
 const updateProfile = async () => {

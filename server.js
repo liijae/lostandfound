@@ -25,7 +25,7 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
@@ -34,6 +34,13 @@ app.use(cors({
 app.use(express.json())
 // 使用路由
 // app.use('/api', routes); // 已删除
+
+// 添加请求日志中间件
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
 
 // ============ 路由配置 ============
 // 测试端点
@@ -53,6 +60,25 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes)
 app.use('/api/posts', postRoutes)
 
+
+// ============ 增强的错误处理 ============
+app.use((err, req, res, next) => {
+  console.error('全局错误捕获:', {
+    method: req.method,
+    path: req.path,
+    error: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+  
+  res.status(500).json({ 
+    success: false,
+    message: '服务器内部错误',
+    error: process.env.NODE_ENV === 'development' ? err.message : null
+  });
+});
+
+
+
 // ============ 错误处理 ============
 // 404处理
 app.use((req, res) => {
@@ -66,7 +92,7 @@ app.listen(PORT, '0.0.0.0', () => {
   ==================================
   🚀 服务器运行中
   📡 本机访问: http://localhost:${PORT}
-  🌐 子网访问: http://10.122.192.1:${PORT}
+  🌐 子网访问: http://10.122.193.212:${PORT}
   ==================================
   `);
 });
