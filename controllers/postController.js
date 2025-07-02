@@ -33,15 +33,49 @@ exports.createPost = async (req, res) => {
 // 获取帖子列表
 exports.getPosts = async (req, res) => {
   try {
-    const { type, keyword, page = 1, limit = 10, sort = '-createdAt' } = req.query;
+    const { 
+      type, 
+      keyword, 
+      category,
+      location,
+      status,
+      startDate, 
+      endDate,
+      sort = '-createdAt' 
+    } = req.query;
+
+    // 构建查询条件
     const query = {};
     
+    // 类型筛选
     if (type) query.type = type;
+    
+    // 状态筛选
+    if (status) query.status = status;
+    
+    // 关键词搜索（标题或描述）
     if (keyword) {
       query.$or = [
         { title: { $regex: keyword, $options: 'i' } },
         { description: { $regex: keyword, $options: 'i' } }
       ];
+    }
+    
+    // 分类筛选
+    if (category) {
+      query.category = category;
+    }
+    
+    // 地点筛选
+    if (location) {
+      query.location = { $regex: location, $options: 'i' };
+    }
+    
+    // 日期范围筛选
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) query.date.$lte = new Date(endDate);
     }
 
     // 动态排序
@@ -51,15 +85,23 @@ exports.getPosts = async (req, res) => {
     } else {
       sortOption[sort] = 1;
     }
+
+    // 执行查询
     const posts = await Post.find(query)
       .sort(sortOption)
-      .skip((page - 1) * limit)
-      .limit(limit)
       .populate('user', 'username email');
 
-    res.json(posts);
+    res.json({
+      success: true,
+      data: posts
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('获取帖子列表错误:', error);
+    res.status(500).json({ 
+      success: false,
+      message: '获取帖子列表失败',
+      error: process.env.NODE_ENV === 'development' ? error.message : null
+    });
   }
 };
 
