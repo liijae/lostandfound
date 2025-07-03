@@ -38,34 +38,36 @@
           ref="mapImage" 
           @load="initMapDimensions"
         >
-        <div
-          v-if="route.query.mode === 'add' && editingPosition"
-          class="map-point new"
-          :style="{
-            position: 'absolute',
-            left: toDisplayPos(editingPosition.x, editingPosition.y).x - pointSize / 2 + 'px',
-            top: toDisplayPos(editingPosition.x, editingPosition.y).y - pointSize / 2 + 'px',
-            zIndex: 20,
-            pointerEvents: 'none'
-          }"
-        >
-          <div class="legend-color legend-lost"></div>
-        </div>
-        <div
-          v-for="item in filteredItems"
-          :key="item._id"
-          class="map-point"
-          :style="{
-            position: 'absolute',
-            left: toDisplayPos(item.coordinates.x, item.coordinates.y).x - pointSize / 2 + 'px',
-            top: toDisplayPos(item.coordinates.x, item.coordinates.y).y - pointSize / 2 + 'px',
-            zIndex: 1,
-            cursor: 'pointer'
-          }"
-          @click="showItemDetails(item)"
-        >
-          <div :class="['legend-color', item.type === 'lost' ? 'legend-lost' : 'legend-found']"></div>
-        </div>
+        <template v-if="imageLoaded && mapDimensions.width && mapDimensions.height">
+          <div
+            v-if="route.query.mode === 'add' && editingPosition"
+            class="map-point new"
+            :style="{
+              position: 'absolute',
+              left: toDisplayPos(editingPosition.x, editingPosition.y).x - pointSize / 2 + 'px',
+              top: toDisplayPos(editingPosition.x, editingPosition.y).y - pointSize / 2 + 'px',
+              zIndex: 20,
+              pointerEvents: 'none'
+            }"
+          >
+            <div class="legend-color legend-lost"></div>
+          </div>
+          <div
+            v-for="item in filteredItems"
+            :key="item._id"
+            class="map-point"
+            :style="{
+              position: 'absolute',
+              left: toDisplayPos(item.coordinates.x, item.coordinates.y).x - pointSize / 2 + 'px',
+              top: toDisplayPos(item.coordinates.x, item.coordinates.y).y - pointSize / 2 + 'px',
+              zIndex: 1,
+              cursor: 'pointer'
+            }"
+            @click="showItemDetails(item)"
+          >
+            <div :class="['legend-color', item.type === 'lost' ? 'legend-lost' : 'legend-found']"></div>
+          </div>
+        </template>
       </div>
       
       <div v-if="selectedItem" class="info-card" :class="{ active: selectedItem }">
@@ -80,7 +82,7 @@
           <div class="item-detail">
             <div class="detail-icon">👤</div>
             <div class="detail-content">
-              <strong>联系人：</strong><span>{{ selectedItem?.contact }}</span>
+              <strong>联系人：</strong><span>{{ selectedItem?.user?.username || '匿名' }}</span>
             </div>
           </div>
           <div class="item-detail">
@@ -136,7 +138,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/composables/useApi';
 import { useRoute, useRouter } from 'vue-router';
@@ -165,6 +167,7 @@ const editingPosition = ref(null);
 const isDragging = ref(false);
 const items = ref([]);
 const pointSize = 12; // 圆点直径，和.legend-color宽高一致
+const imageLoaded = ref(false);
 
 // 计算当前年份
 const currentYear = computed(() => new Date().getFullYear());
@@ -176,22 +179,18 @@ const totalItemsCount = computed(() => items.value.filter(item => item.status !=
 
 // 计算筛选后的物品
 const filteredItems = computed(() => {
-  if (!items.value.length) return [];
   return items.value.filter(item => {
     if (item.status === 'found') return false;
     if (activeFilter.value === 'all') return true;
     if (activeFilter.value === 'lost') return item.type === 'lost';
     if (activeFilter.value === 'found') return item.type === 'found';
     if (activeFilter.value === 'teaching') {
-      // 教学区：x > 1147
       return item.coordinates && item.coordinates.x > 1147;
     }
     if (activeFilter.value === 'sports') {
-      // 运动区：x在0~654且y在0~751
       return item.coordinates && item.coordinates.x >= 0 && item.coordinates.x <= 654 && item.coordinates.y >= 0 && item.coordinates.y <= 751;
     }
     if (activeFilter.value === 'dorm') {
-      // 生活区：剩下的
       if (!item.coordinates) return false;
       const isTeaching = item.coordinates.x > 1147;
       const isSports = item.coordinates.x >= 0 && item.coordinates.x <= 654 && item.coordinates.y >= 0 && item.coordinates.y <= 751;
@@ -235,10 +234,11 @@ const initMapDimensions = () => {
       width: mapImage.value.naturalWidth,
       height: mapImage.value.naturalHeight
     };
-    mapDisplaySize.value = {
-      width: mapImage.value.clientWidth,
-      height: mapImage.value.clientHeight
-    };
+    updateMapDisplaySize();
+    imageLoaded.value = true;
+    nextTick(() => {
+      updateMapDisplaySize();
+    });
     if (route.query.mode === 'add') {
       startAddNewItem();
     }
@@ -340,9 +340,11 @@ onMounted(() => {
   if (route.query.mode === 'add') {
     startAddNewItem();
   }
+  window.addEventListener('resize', updateMapDisplaySize);
 });
 onBeforeUnmount(() => {
   window.removeEventListener('post-updated', loadItems);
+  window.removeEventListener('resize', updateMapDisplaySize);
 });
 
 function startAddNewItem() {
@@ -356,9 +358,23 @@ function startAddNewItem() {
 function handleMapMouseMove(e) {
   if (route.query.mode !== 'add') return;
   const rect = mapContainer.value.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  editingPosition.value = toOriginPos(x, y);
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+  // 获取图片实际显示区域
+  const containerWidth = mapContainer.value.clientWidth;
+  const containerHeight = mapContainer.value.clientHeight;
+  const imgWidth = mapImage.value.clientWidth;
+  const imgHeight = mapImage.value.clientHeight;
+  const offsetX = (containerWidth - imgWidth) / 2;
+  const offsetY = (containerHeight - imgHeight) / 2;
+  const imgX = clickX - offsetX;
+  const imgY = clickY - offsetY;
+  // 防止点在留白区域
+  if (imgX < 0 || imgY < 0 || imgX > imgWidth || imgY > imgHeight) return;
+  // 按比例换算为原图坐标
+  const x = imgX / imgWidth * mapDimensions.value.width;
+  const y = imgY / imgHeight * mapDimensions.value.height;
+  editingPosition.value = { x, y };
 }
 
 function handleMapMouseLeave() {
@@ -368,14 +384,11 @@ function handleMapMouseLeave() {
 
 function handleMapClick(e) {
   if (route.query.mode !== 'add' || !editingPosition.value) return;
-  console.log('handleMapClick, route.query:', route.query, 'editingPosition:', editingPosition.value);
   if (route.query.from === 'post-edit' && route.query.editId) {
     localStorage.setItem('postEditCoordinates', JSON.stringify(editingPosition.value));
-    console.log('写入 postEditCoordinates:', editingPosition.value);
     router.push(`/posts/edit/${route.query.editId}`);
   } else {
     localStorage.setItem('postCreateCoordinates', JSON.stringify(editingPosition.value));
-    console.log('写入 postCreateCoordinates:', editingPosition.value);
     router.push('/posts/create');
   }
 }
@@ -390,10 +403,18 @@ function getAreaName(coordinates) {
 // 工具函数：原始坐标转显示坐标
 function toDisplayPos(x, y) {
   if (!mapDimensions.value.width || !mapDisplaySize.value.width) return { x, y };
-  return {
-    x: x / mapDimensions.value.width * mapDisplaySize.value.width,
-    y: y / mapDimensions.value.height * mapDisplaySize.value.height
-  };
+  const container = mapContainer.value;
+  const img = mapImage.value;
+  if (!container || !img) return { x, y };
+  const containerWidth = container.clientWidth;
+  const containerHeight = container.clientHeight;
+  const imgWidth = img.clientWidth;
+  const imgHeight = img.clientHeight;
+  const offsetX = (containerWidth - imgWidth) / 2;
+  const offsetY = (containerHeight - imgHeight) / 2;
+  const px = x / mapDimensions.value.width * imgWidth + offsetX;
+  const py = y / mapDimensions.value.height * imgHeight + offsetY;
+  return { x: px, y: py };
 }
 
 // 工具函数：显示坐标转原始坐标
@@ -405,15 +426,14 @@ function toOriginPos(x, y) {
   };
 }
 
-// 监听窗口resize，动态更新图片显示尺寸
-window.addEventListener('resize', () => {
+function updateMapDisplaySize() {
   if (mapImage.value) {
     mapDisplaySize.value = {
       width: mapImage.value.clientWidth,
       height: mapImage.value.clientHeight
     };
   }
-});
+}
 </script>
 
 <style scoped>
@@ -508,7 +528,9 @@ window.addEventListener('resize', () => {
 .map-container {
   width: 100%;
   max-width: 900px;
-  height: 600px;
+  height: 60vw;
+  max-height: 600px;
+  min-height: 200px;
   background: #e8eaf6;
   border-radius: 10px;
   overflow: hidden;
@@ -516,12 +538,18 @@ window.addEventListener('resize', () => {
   box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
   margin-bottom: 20px;
 }
-
+@media (max-width: 600px) {
+  .map-container {
+    height: 60vw;
+    min-height: 160px;
+  }
+}
 .campus-map-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
   background: #f0f0f0;
+  display: block;
 }
 
 .legend {

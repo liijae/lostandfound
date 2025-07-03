@@ -105,6 +105,31 @@ function scrollToPost(id) {
     setTimeout(() => el.classList.remove('highlight'), 2000)
   }
 }
+
+function toDisplayPos(x, y) {
+  if (!mapDimensions.value.width || !mapDisplaySize.value.width) return { x, y };
+  const container = mapContainer.value;
+  const img = mapImage.value;
+  if (!container || !img) return { x, y };
+  const containerWidth = container.clientWidth;
+  const containerHeight = container.clientHeight;
+  const imgWidth = img.clientWidth;
+  const imgHeight = img.clientHeight;
+  const offsetX = (containerWidth - imgWidth) / 2;
+  const offsetY = (containerHeight - imgHeight) / 2;
+  const px = x / mapDimensions.value.width * imgWidth + offsetX;
+  const py = y / mapDimensions.value.height * imgHeight + offsetY;
+  console.log('[toDisplayPos]', {
+    x, y,
+    mapDimensions: mapDimensions.value,
+    mapDisplaySize: mapDisplaySize.value,
+    containerWidth, containerHeight,
+    imgWidth, imgHeight,
+    offsetX, offsetY,
+    px, py
+  });
+  return { x: px, y: py };
+}
 </script>
 
 <style scoped>

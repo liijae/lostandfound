@@ -26,7 +26,7 @@
       </div>
       <div class="form-group">
         <label>时间：</label>
-        <input v-model="form.date" type="date" />
+        <input v-model="form.date" type="date" required />
       </div>
       <div class="form-group">
         <label>图片：</label>
@@ -61,6 +61,17 @@ const handleFileChange = (e) => {
 }
 
 const handleSubmit = async () => {
+  // 校验所有必填项，标题和描述用trim判断
+  if (
+    !form.value.type ||
+    !form.value.title.trim() ||
+    !form.value.description.trim() ||
+    !form.value.coordinates ||
+    !form.value.date
+  ) {
+    alert('请完整填写所有信息（类型、标题、描述、地点、日期）');
+    return;
+  }
   const formData = new FormData()
   Object.entries(form.value).forEach(([key, val]) => {
     if (key === 'coordinates' && val) {

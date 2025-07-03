@@ -21,7 +21,7 @@
     
     <div class="card-content">
       <h3 class="card-title">{{ post.title }}</h3>
-      <p class="card-desc">{{ truncate(post.description, 60) }}</p>
+      <p class="card-desc">{{ post.description }}</p>
       
       <div class="card-footer">
         <span class="location">
@@ -136,14 +136,16 @@ function getAreaName(coordinates) {
 /* 图片区域 */
 .card-image-container {
   position: relative;
-  height: 180px;
+  width: 100%;
+  aspect-ratio: 4 / 3; /* 或16/9、1/1等，根据实际需求 */
+  background: #f5f5f5;
   overflow: hidden;
 }
 .card-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s;
+  object-fit: contain;
+  background: #f5f5f5;
 }
 .post-card:hover .card-image {
   transform: scale(1.05);
@@ -190,11 +192,22 @@ function getAreaName(coordinates) {
   overflow: hidden;
 }
 .card-desc {
-  margin: 0 0 15px;
+  height: 48px;           /* 固定高度，可根据实际调整 */
+  overflow: auto;         /* 超出部分可滚动 */
   color: #666;
   font-size: 14px;
   line-height: 1.5;
-  flex-grow: 1;
+  margin: 0 0 15px;
+  padding-right: 4px;
+  word-break: break-all;
+}
+.card-desc::-webkit-scrollbar {
+  width: 4px;
+  background: #f0f0f0;
+}
+.card-desc::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 2px;
 }
 
 /* 底部信息 */
