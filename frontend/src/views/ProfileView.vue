@@ -72,7 +72,7 @@ import PostItem from '@/components/PostItem.vue'
 import api from '@/composables/useApi'
 import { format } from 'date-fns'
 import { useRouter } from 'vue-router'
-import { useMessageStore } from '@/stores/messages'
+import { useMessagesStore } from '@/stores/messages'
 
 const authStore = useAuthStore()
 const activeTab = ref('posts')
@@ -81,7 +81,7 @@ const loading = ref(false)
 const router = useRouter()
 const conversations = ref([])
 const loadingConvs = ref(false)
-const messageStore = useMessageStore()
+const messageStore = useMessagesStore()
 
 const tabs = [
   { label: '我的帖子', value: 'posts' },

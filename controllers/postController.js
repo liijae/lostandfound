@@ -23,6 +23,49 @@ exports.createPost = async (req, res) => {
       images,
       user: req.user._id // 确保字段名与模型一致
     });
+    // 智能匹配与推送
+    try {
+      const oppositeType = post.type === 'lost' ? 'found' : 'lost';
+      // 构造关键词
+      const keyword = [post.title, post.description, post.type, post.location].join(' ');
+      // 时间范围（±3天）
+      const postTime = new Date(post.date);
+      const startTime = new Date(postTime);
+      startTime.setDate(startTime.getDate() - 3);
+      const endTime = new Date(postTime);
+      endTime.setDate(endTime.getDate() + 3);
+      // 查找匹配的帖子
+      const matchedPosts = await Post.find({
+        type: oppositeType,
+        $text: { $search: keyword },
+        location: post.location,
+        date: { $gte: startTime, $lte: endTime }
+      }).limit(5);
+      // 推送消息
+      const Message = require('../models/Message');
+      for (const match of matchedPosts) {
+        await Message.create({
+          from: post.user,
+          to: match.user,
+          content: `系统为你匹配到一条相关信息：${post.title}`,
+          type: 'system',
+          matchedPost: post._id
+        });
+      }
+      // 新增：给新发帖人自己推送所有匹配到的帖子
+      for (const match of matchedPosts) {
+        await Message.create({
+          from: match.user,
+          to: post.user,
+          content: `系统为你匹配到一条相关信息：${match.title}`,
+          type: 'system',
+          matchedPost: match._id
+        });
+      }
+    } catch (err) {
+      console.error('智能匹配推送失败', err);
+      // 不影响主流程
+    }
     res.status(201).json(post);
   } catch (error) {
     console.error('发布帖子错误:', error); // 打印详细错误

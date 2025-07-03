@@ -5,9 +5,25 @@
       <span>与 {{ otherUsername }} 的私信</span>
     </div>
     <div class="chat-messages" ref="msgListRef">
-      <div v-for="msg in messages" :key="msg._id" :class="['chat-msg', String(msg.from._id) === myId ? 'me' : 'other']">
-        <div class="msg-content">{{ msg.content }}</div>
-        <div class="msg-time">{{ formatTime(msg.createdAt) }}</div>
+      <div v-for="msg in messages" :key="msg._id">
+        <div v-if="msg.type === 'system'" class="chat-msg system-message">
+          <router-link
+            v-if="msg.matchedPost"
+            :to="`/posts?highlight=${msg.matchedPost}`"
+            class="system-link"
+            style="text-decoration: underline; color: #42b983;"
+          >
+            [系统推送] {{ msg.content }}
+          </router-link>
+          <span v-else>
+            [系统推送] {{ msg.content }}
+          </span>
+          <div class="msg-time">{{ formatTime(msg.createdAt) }}</div>
+        </div>
+        <div v-else :class="['chat-msg', String(msg.from._id) === myId ? 'me' : 'other']">
+          <div class="msg-content">{{ msg.content }}</div>
+          <div class="msg-time">{{ formatTime(msg.createdAt) }}</div>
+        </div>
       </div>
     </div>
     <form class="chat-input" @submit.prevent="handleSend">
@@ -23,7 +39,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/composables/useApi'
 import { format } from 'date-fns'
-import { useMessageStore } from '@/stores/messages'
+import { useMessagesStore } from '@/stores/messages'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -33,7 +49,7 @@ const messages = ref([])
 const input = ref('')
 const otherUsername = ref('')
 const msgListRef = ref(null)
-const messageStore = useMessageStore()
+const messageStore = useMessagesStore()
 let timer = null
 
 const fetchMessages = async () => {
@@ -181,5 +197,22 @@ onUnmounted(() => {
 .chat-input button:disabled {
   background: #ccc;
   cursor: not-allowed;
+}
+.system-message {
+  background: #f5f5f5;
+  color: #888;
+  text-align: center;
+  border-radius: 8px;
+  margin: 8px 0;
+  font-size: 14px;
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 8px 12px;
+}
+.system-link {
+  cursor: pointer;
+  color: #42b983;
+  text-decoration: underline;
 }
 </style> 

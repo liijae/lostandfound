@@ -34,6 +34,9 @@ import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/composables/useApi'
 import { format } from 'date-fns'
+import { useMessagesStore } from '../stores/messages'
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   post: {
@@ -45,6 +48,8 @@ const props = defineProps({
 const emit = defineEmits(['edit', 'delete', 'mark-found', 'refresh'])
 
 const authStore = useAuthStore()
+const store = useMessagesStore()
+const router = useRouter()
 
 // 计算属性
 const postTypeText = computed(() => {
@@ -59,6 +64,8 @@ const isAuthor = computed(() => {
   return authStore.user?._id === props.post.user?._id
 })
 
+const { unreadCount } = store
+
 // 方法
 const formatDate = (dateString) => {
   return format(new Date(dateString), 'yyyy-MM-dd HH:mm')
@@ -69,7 +76,7 @@ const handleEdit = () => {
 }
 
 const handleDelete = () => {
-  emit('delete', props.post._id)
+      emit('delete', props.post._id)
 }
 
 const handleMarkFound = () => {
@@ -79,6 +86,14 @@ const handleMarkFound = () => {
 const openImage = (imgUrl) => {
   window.open(imgUrl, '_blank')
 }
+
+const goToCreate = () => {
+  router.push('/create')
+}
+
+onMounted(() => {
+  store.fetchMessages()
+})
 </script>
 
 <style scoped>
@@ -176,5 +191,14 @@ const openImage = (imgUrl) => {
   font-size: 12px;
   margin-left: 8px;
   margin-top: 2px;
+}
+
+.badge {
+  color: #fff;
+  background: #f56c6c;
+  border-radius: 8px;
+  padding: 2px 6px;
+  font-size: 12px;
+  margin-left: 4px;
 }
 </style>

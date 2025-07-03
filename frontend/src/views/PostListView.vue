@@ -38,17 +38,26 @@
     <div v-else>
       <div v-if="posts.length === 0">暂无帖子</div>
       <div v-else class="card-grid">
-        <PostCard v-for="post in posts" :key="post._id" :post="post" />
+        <PostCard v-for="post in posts" :key="post._id" :post="post" :id="'post-' + post._id" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import api from '../composables/useApi'
 import PostCard from '../components/PostCard.vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useMessagesStore } from '@/stores/messages'
+
+const router = useRouter()
+const route = useRoute()
+const goToCreate = () => {
+  console.log('goToCreate 被触发') // 测试用，后续可删
+  router.push('/posts/create')
+}
 
 const searchKeyword = ref('')
 const filterType = ref('')
@@ -58,6 +67,8 @@ const endDate = ref('')
 const authStore = useAuthStore()
 const posts = ref([])
 const loading = ref(false)
+const store = useMessagesStore()
+const highlightId = ref(route.query.highlight || '')
 
 const fetchPosts = async () => {
   try {
@@ -79,7 +90,23 @@ const fetchPosts = async () => {
   }
 }
 
-onMounted(fetchPosts)
+onMounted(async () => {
+  await fetchPosts()
+  store.fetchMessages()
+  await nextTick()
+  if (highlightId.value) {
+    scrollToPost(highlightId.value)
+  }
+})
+
+function scrollToPost(id) {
+  const el = document.getElementById('post-' + id)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.classList.add('highlight')
+    setTimeout(() => el.classList.remove('highlight'), 2000)
+  }
+}
 </script>
 
 <style scoped>
@@ -129,5 +156,29 @@ onMounted(fetchPosts)
   border-radius: 4px;
   width: 140px;
   max-width: 100%;
+}
+
+.badge {
+  color: #fff;
+  background: #f56c6c;
+  border-radius: 8px;
+  padding: 2px 6px;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.highlight {
+  box-shadow: 0 0 10px 2px #42b983;
+  transition: box-shadow 0.5s;
+}
+
+.system-link {
+  cursor: pointer;
+  color: #42b983;
+  text-decoration: underline;
+  display: inline;
+}
+.system-link:hover {
+  color: #2a8c6c;
 }
 </style>

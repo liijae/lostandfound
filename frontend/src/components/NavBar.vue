@@ -20,12 +20,12 @@
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { useMessageStore } from '@/stores/messages'
+import { useMessagesStore } from '@/stores/messages'
 import { onMounted, watch, onUnmounted } from 'vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
-const messageStore = useMessageStore()
+const messageStore = useMessagesStore()
 const { isAuthenticated } = storeToRefs(authStore)
 
 let timer = null

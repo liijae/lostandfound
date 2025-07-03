@@ -54,7 +54,7 @@
 import { format } from 'date-fns'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
-import { useMessageStore } from '@/stores/messages'
+import { useMessagesStore } from '@/stores/messages'
 
 const props = defineProps({
   post: {
@@ -89,7 +89,7 @@ const goLogin = () => {
   router.push('/login')
 }
 
-const messageStore = useMessageStore()
+const messageStore = useMessagesStore()
 </script>
 
 <style scoped>
