@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const Post = require('../models/Post');
 const authMiddleware = require('../middlewares/authMiddleware');
 const postController = require('../controllers/postController');
+const sendMail = require('../utils/sendMail');
+const User = require('../models/User');
 
 // 创建帖子
 exports.createPost = async (req, res) => {
@@ -65,8 +67,18 @@ exports.createPost = async (req, res) => {
           type: 'system',
           matchedPost: post._id
         });
+        // 邮件提醒被推送用户
+        const matchUser = await User.findById(match.user);
+        if (matchUser && matchUser.email) {
+          sendMail(
+            matchUser.email,
+            '失物招领系统-智能匹配提醒',
+            `您好，系统为您匹配到一条相关信息：${post.title}\n请登录校园失物招领系统查看详情。`
+          ).catch(e => console.error('邮件发送失败', e));
+        }
       }
       // 新增：给新发帖人自己推送所有匹配到的帖子
+      const postUser = await User.findById(post.user);
       for (const match of matchedPosts) {
         await Message.create({
           from: match.user,
@@ -75,6 +87,14 @@ exports.createPost = async (req, res) => {
           type: 'system',
           matchedPost: match._id
         });
+        // 邮件提醒发帖用户
+        if (postUser && postUser.email) {
+          sendMail(
+            postUser.email,
+            '失物招领系统-智能匹配提醒',
+            `您好，系统为您匹配到一条相关信息：${match.title}\n请登录校园失物招领系统查看详情。`
+          ).catch(e => console.error('邮件发送失败', e));
+        }
       }
     } catch (err) {
       console.error('智能匹配推送失败', err);
