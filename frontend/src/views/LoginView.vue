@@ -39,7 +39,7 @@ const handleSubmit = async () => {
     
     authStore.setToken(response.data.token)
     authStore.setUser(response.data.user)
-    router.push('/profile') // 明确跳转到个人中心
+    router.push('/profile') // 登录后跳转个人中心
     
     console.log('前端传入:', { username: form.value.username.trim(), password: form.value.password })
     console.log('查找到的用户:', response.data.user)
@@ -49,7 +49,7 @@ const handleSubmit = async () => {
     
     if (error.response) {
       if (error.response.status === 401) {
-        message = '邮箱或密码错误'
+        message = '用户名或密码错误'
       } else if (error.response.data?.message) {
         message = error.response.data.message
       }

@@ -35,20 +35,21 @@ const password = ref('')
 
 const handleRegister = async () => {
   try {
-    console.log("正在提交注册数据:", { 
-      username: username.value, 
-      email: email.value 
-    }) // 调试
-
     await authStore.register({
       username: username.value,
       email: email.value,
       password: password.value
     })
-    console.log("注册成功，跳转首页") // 调试
-    router.push('/') // 注册成功后跳转首页
+    router.push('/profile')
   } catch (error) {
-    console.error('注册失败:', error.response?.data || error.message) // 详细错误
+    const msg = error.response?.data?.message || error.message
+    if (msg.includes('用户名已存在')) {
+      alert('用户名已存在，请更换用户名')
+    } else if (msg.includes('邮箱已存在')) {
+      alert('邮箱已存在，请更换邮箱')
+    } else {
+      alert('注册失败：' + msg)
+    }
   }
 }
 </script>

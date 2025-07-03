@@ -1,9 +1,8 @@
 <template>
   <div class="post-list-container">
-    <!-- 顶部操作栏：添加搜索框 -->
-    <div class="top-bar">
-      <div class="search-and-filters">
-        <!-- 搜索框 -->
+    <!-- 顶部操作栏：响应式布局 -->
+    <div class="top-bar responsive-top-bar">
+      <div class="search-and-date-row">
         <input
           v-model="searchKeyword"
           type="text"
@@ -11,12 +10,11 @@
           @keyup.enter="fetchPosts"
           class="search-input"
         >
-        <!-- 新增日期筛选器 -->
-        <input type="date" v-model="startDate" class="date-input" @change="fetchPosts" />
-        <span>至</span>
-        <input type="date" v-model="endDate" class="date-input" @change="fetchPosts" />
-        
-        <!-- 原有筛选控件 -->
+        <input type="date" v-model="startDate" class="date-input" @change="fetchPosts" placeholder="年/月/日" />
+        <span class="date-to">至</span>
+        <input type="date" v-model="endDate" class="date-input" @change="fetchPosts" placeholder="年/月/日" />
+      </div>
+      <div class="filters-and-action-row">
         <div class="filters">
           <select v-model="filterType" @change="fetchPosts">
             <option value="">全部类型</option>
@@ -29,8 +27,8 @@
             <option value="createdAt">最旧优先</option>
           </select>
         </div>
+        <button v-if="authStore.isAuthenticated" @click="goToCreate" class="create-btn">发布新帖</button>
       </div>
-      <button v-if="authStore.isAuthenticated" @click="goToCreate" class="create-btn">发布新帖</button>
     </div>
 
     <!-- 帖子列表部分 -->
@@ -110,36 +108,74 @@ function scrollToPost(id) {
 </script>
 
 <style scoped>
-/* 新增搜索框样式 */
-.search-and-filters {
+/* 响应式顶部栏布局 */
+.responsive-top-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.search-and-date-row {
   display: flex;
   align-items: center;
   gap: 15px;
-  flex-grow: 1;
-}
-
-.search-input {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  width: 300px;
-  max-width: 100%;
-}
-
-/* 调整顶部栏布局 */
-.top-bar {
-  display: flex;
   flex-wrap: wrap;
-  gap: 15px;
 }
-
-@media (max-width: 768px) {
-  .search-and-filters {
+.filters-and-action-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.create-btn {
+  margin-left: auto;
+  min-width: 100px;
+}
+.date-to {
+  margin: 0 5px;
+}
+@media (min-width: 900px) {
+  .responsive-top-bar {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+  }
+  .search-and-date-row {
+    flex: 2;
+    min-width: 0;
+  }
+  .filters-and-action-row {
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .create-btn {
+    margin-left: 20px;
+  }
+}
+@media (max-width: 600px) {
+  .search-input, .date-input {
+    width: 100%;
+    min-width: 0;
+  }
+  .filters-and-action-row {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
   }
-  .search-input {
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .create-btn {
     width: 100%;
+    margin-left: 0;
   }
 }
 

@@ -26,7 +26,7 @@
       <div class="card-footer">
         <span class="location">
           <i class="icon-location"></i>
-          {{ post.location || '未知地点' }}
+          {{ getAreaName(post.coordinates) }}
         </span>
         <span class="contact">
           <i class="icon-user"></i>
@@ -90,6 +90,13 @@ const goLogin = () => {
 }
 
 const messageStore = useMessagesStore()
+
+function getAreaName(coordinates) {
+  if (!coordinates || typeof coordinates.x !== 'number' || typeof coordinates.y !== 'number') return '未知地点';
+  if (coordinates.x > 1147) return '教学区';
+  if (coordinates.x >= 0 && coordinates.x <= 654 && coordinates.y >= 0 && coordinates.y <= 751) return '运动区';
+  return '生活区';
+}
 </script>
 
 <style scoped>

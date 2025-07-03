@@ -14,11 +14,10 @@
         </div>
         <div class="form-group">
           <label>地点</label>
-          <input v-model="form.location" type="text" required />
-        </div>
-        <div class="form-group">
-          <label>联系方式</label>
-          <input v-model="form.contact" type="text" />
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button type="button" @click="goToMapSelect">地图选点</button>
+            <span v-if="form.coordinates">已选坐标：X: {{ form.coordinates.x.toFixed(2) }}, Y: {{ form.coordinates.y.toFixed(2) }}</span>
+          </div>
         </div>
         <!-- 可选：图片编辑，暂不支持图片上传，仅显示已有图片 -->
         <div class="form-group" v-if="form.images && form.images.length">
@@ -36,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onActivated } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/composables/useApi'
 
@@ -49,9 +48,8 @@ const error = ref('')
 const form = ref({
   title: '',
   description: '',
-  location: '',
-  contact: '',
-  images: []
+  images: [],
+  coordinates: null
 })
 
 const fetchPost = async () => {
@@ -68,12 +66,14 @@ const fetchPost = async () => {
 
 const handleSubmit = async () => {
   try {
-    const allowed = ['title', 'description', 'location', 'status', 'images', 'contact'];
+    const allowed = ['title', 'description', 'status', 'images', 'coordinates'];
     const data = {};
     allowed.forEach(key => {
       if (form.value[key] !== undefined) data[key] = form.value[key];
     });
+    console.log('handleSubmit 提交数据:', data);
     await api.patch(`/posts/${id}`, data);
+    window.dispatchEvent(new Event('post-updated'));
     router.push('/profile');
   } catch (err) {
     error.value = err.response?.data?.message || err.message;
@@ -84,7 +84,47 @@ const goBack = () => {
   router.push('/profile')
 }
 
-onMounted(fetchPost)
+const goToMapSelect = () => {
+  console.log('goToMapSelect 跳转参数:', { id, form: form.value });
+  localStorage.setItem('postEditFormCache', JSON.stringify(form.value))
+  router.push({ path: '/', query: { mode: 'add', from: 'post-edit', editId: id } })
+}
+
+function restoreCoordinatesFromLocalStorage() {
+  const coordStr = localStorage.getItem('postEditCoordinates')
+  console.log('restoreCoordinatesFromLocalStorage, localStorage:', coordStr);
+  if (coordStr) {
+    try {
+      form.value.coordinates = JSON.parse(coordStr)
+      console.log('回填后的 form.value.coordinates:', form.value.coordinates);
+    } catch {}
+    localStorage.removeItem('postEditCoordinates')
+  } else {
+    console.log('无 postEditCoordinates 可回填');
+  }
+}
+
+onMounted(() => {
+  fetchPost().then(() => {
+    // 恢复表单内容
+    const cacheStr = localStorage.getItem('postEditFormCache')
+    if (cacheStr) {
+      try {
+        const cache = JSON.parse(cacheStr)
+        Object.assign(form.value, cache)
+      } catch {}
+      localStorage.removeItem('postEditFormCache')
+    }
+    // 最后恢复坐标
+    restoreCoordinatesFromLocalStorage()
+    console.log('onMounted, form.value.coordinates:', form.value.coordinates);
+  });
+})
+
+onActivated(() => {
+  restoreCoordinatesFromLocalStorage()
+  console.log('onActivated, form.value.coordinates:', form.value.coordinates);
+})
 </script>
 
 <style scoped>

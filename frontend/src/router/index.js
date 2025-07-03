@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { setupAuthGuard } from './authGuard'
 
 // 静态导入（适合核心页面）
-import HomeView from '../views/HomeView.vue'
+import HomeView from '../views/CampusMap.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 

@@ -7,22 +7,22 @@ const jwt = require('jsonwebtoken');
 exports.register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    
-    // 检查用户是否已存在
-    const userExists = await User.findOne({ email });
+    // 检查用户名或邮箱是否已存在
+    const userExists = await User.findOne({ $or: [ { email }, { username } ] });
     if (userExists) {
-      return res.status(400).json({ message: '用户已存在' });
+      if (userExists.username === username) {
+        return res.status(400).json({ message: '用户名已存在' });
+      } else {
+        return res.status(400).json({ message: '邮箱已存在' });
+      }
     }
-
     // 创建用户
     const user = await User.create({ username, email, password });
     await user.save()
-
     // 生成Token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: '30d'
     });
-
     res.status(201).json({
       _id: user._id,
       username: user.username,
@@ -30,6 +30,13 @@ exports.register = async (req, res) => {
       token
     });
   } catch (error) {
+    // 唯一索引冲突兜底
+    if (error.code === 11000 && error.keyPattern && error.keyPattern.username) {
+      return res.status(400).json({ message: '用户名已存在' });
+    }
+    if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
+      return res.status(400).json({ message: '邮箱已存在' });
+    }
     res.status(500).json({ message: error.message });
   }
 };

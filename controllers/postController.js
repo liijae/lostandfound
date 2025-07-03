@@ -6,9 +6,17 @@ const postController = require('../controllers/postController');
 // 创建帖子
 exports.createPost = async (req, res) => {
   try {
-    const { type, title, description, location, contact, date } = req.body; // 添加解构description和date
-    if (!type || !title || !location) {
-      return res.status(400).json({ message: '类型、标题、地点为必填项' });
+    let { type, title, description, contact, date, coordinates } = req.body;
+    // 兼容FormData字符串
+    if (typeof coordinates === 'string') {
+      try {
+        coordinates = JSON.parse(coordinates);
+      } catch {
+        coordinates = undefined;
+      }
+    }
+    if (!type || !title || !coordinates) {
+      return res.status(400).json({ message: '缺少必要字段' });
     }
     // 处理图片
     const images = req.files ? req.files.map(file => file.path) : [];
@@ -16,18 +24,18 @@ exports.createPost = async (req, res) => {
     const post = await Post.create({
       type,
       title,
-      description: description || '', // 处理可能的undefined
-      location,
-      contact: contact || '', // 处理可能的undefined
-      date: date ? new Date(date) : Date.now(), // 正确处理日期格式
+      description: description || '',
+      contact: contact || '',
+      date: date ? new Date(date) : Date.now(),
       images,
+      coordinates,
       user: req.user._id // 确保字段名与模型一致
     });
     // 智能匹配与推送
     try {
       const oppositeType = post.type === 'lost' ? 'found' : 'lost';
       // 构造关键词
-      const keyword = [post.title, post.description, post.type, post.location].join(' ');
+      const keyword = [post.title, post.description, post.type, post.coordinates].join(' ');
       // 时间范围（±3天）
       const postTime = new Date(post.date);
       const startTime = new Date(postTime);
@@ -38,9 +46,15 @@ exports.createPost = async (req, res) => {
       const matchedPosts = await Post.find({
         type: oppositeType,
         $text: { $search: keyword },
-        location: post.location,
-        date: { $gte: startTime, $lte: endTime }
+        date: { $gte: startTime, $lte: endTime },
+        $expr: {
+          $and: [
+            { $lte: [ { $abs: { $subtract: [ "$coordinates.x", post.coordinates.x ] } }, 50 ] },
+            { $lte: [ { $abs: { $subtract: [ "$coordinates.y", post.coordinates.y ] } }, 50 ] }
+          ]
+        }
       }).limit(5);
+      console.log('智能匹配推送：matchedPosts数量', matchedPosts.length, '内容:', matchedPosts);
       // 推送消息
       const Message = require('../models/Message');
       for (const match of matchedPosts) {
@@ -80,7 +94,6 @@ exports.getPosts = async (req, res) => {
       type, 
       keyword, 
       category,
-      location,
       status,
       startDate, 
       endDate,
@@ -107,11 +120,6 @@ exports.getPosts = async (req, res) => {
     // 分类筛选
     if (category) {
       query.category = category;
-    }
-    
-    // 地点筛选
-    if (location) {
-      query.location = { $regex: location, $options: 'i' };
     }
     
     // 日期范围筛选
@@ -164,7 +172,7 @@ exports.getMyPosts = async (req, res) => {
 exports.updatePost = async (req, res) => {
   try {
     const updates = Object.keys(req.body)
-    const allowedUpdates = ['title', 'description', 'location', 'status', 'images', 'contact']
+    const allowedUpdates = ['title', 'description', 'coordinates', 'status', 'images', 'contact']
     const isValidOperation = updates.every(update => allowedUpdates.includes(update))
 
     if (!isValidOperation) {

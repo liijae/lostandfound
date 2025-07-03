@@ -135,6 +135,7 @@ const handleMarkFound = async (postId) => {
   try {
     await api.patch(`/posts/${postId}`, { status: 'found' });
     fetchMyPosts();
+    window.dispatchEvent(new Event('post-updated'));
   } catch (error) {
     alert('标记失败: ' + (error.response?.data?.message || error.message));
   }
