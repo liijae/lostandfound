@@ -2,7 +2,7 @@
 
 ## 项目简介 Project Introduction
 
-本项目是一个基于 **Node.js (Express) + MongoDB + Vue3 (Vite)** 的前后端分离校园失物招领系统，支持信息发布、智能匹配推送、地图点位、消息中心等功能，适用于高校等场景的失物招领管理。
+本项目是一个基于 **Node.js (Express) + MongoDB + Vue3 (Vite)** 的前后端分离校园失物招领系统，支持局域网多端访问、信息发布、智能匹配推送、地图点位、消息中心、邮件提醒等功能，适用于高校等场景的失物招领管理。
 
 This project is a full-stack campus lost & found platform based on **Node.js (Express), MongoDB, and Vue3 (Vite)**. It supports item posting, smart matching & notification, map point management, message center, and more. Suitable for universities and similar scenarios.
 
@@ -14,7 +14,8 @@ This project is a full-stack campus lost & found platform based on **Node.js (Ex
 - **后端 Backend**：Node.js + Express + MongoDB (Mongoose)
 - **通信 Communication**：RESTful API, JWT 认证
 - **地图 Map**：自定义图片地图 + 坐标点位
-
+- 数据库：MongoDB
+- 邮件提醒：nodemailer + QQ邮箱SMTP
 ---
 
 ## 主要功能 Main Features
@@ -27,7 +28,8 @@ This project is a full-stack campus lost & found platform based on **Node.js (Ex
 - 消息中心（系统推送、私信）
 - 个人中心（管理我的帖子、消息、标记已找回）
 - 权限控制（未登录仅浏览，登录后可发帖、编辑、聊天）
-
+- 邮件提醒（匹配/新消息自动邮件通知）
+- 局域网多端访问（手机/电脑）
 ---
 
 ## 目录结构 Directory Structure
@@ -71,29 +73,33 @@ src/
 
 ```
 后端根目录/
-├── config/
-│   └── db.js              # 数据库连接配置
-├── controllers/           # 业务控制器
-│   ├── authController.js  # 用户认证相关
-│   ├── postController.js  # 帖子相关（发帖、匹配、推送等）
-│   └── messageController.js # 消息相关
-├── middlewares/           # 中间件
-│   ├── authMiddleware.js  # JWT 鉴权
-│   └── uploadMiddleware.js # 图片上传
-├── models/                # Mongoose 数据模型
-│   ├── User.js            # 用户模型
-│   ├── Post.js            # 帖子模型
-│   └── Message.js         # 消息模型
-├── routes/                # 路由定义
-│   ├── authRoutes.js      # 用户相关路由
-│   ├── postRoutes.js      # 帖子相关路由
-│   └── messageRoutes.js   # 消息相关路由
-├── uploads/               # 图片上传存储目录
-│   └── posts/             # 帖子图片
+├── config/                    # 配置文件
+│   ├── db.js                  # 数据库连接配置
+│   └── email.js               # 邮箱SMTP配置
+├── controllers/               # 业务控制器
+│   ├── authController.js      # 用户注册/登录等
+│   ├── messageController.js   # 消息相关
+│   └── postController.js      # 帖子相关（发帖、匹配、推送等）
+├── middlewares/               # Express中间件
+│   ├── authMiddleware.js      # JWT鉴权
+│   └── uploadMiddleware.js    # 图片上传
+├── models/                    # Mongoose数据模型
+│   ├── User.js                # 用户模型
+│   ├── Post.js                # 帖子模型
+│   └── Message.js             # 消息模型
+├── routes/                    # 路由定义
+│   ├── authRoutes.js          # 用户相关路由
+│   ├── postRoutes.js          # 帖子相关路由
+│   └── messageRoutes.js       # 消息相关路由
+├── uploads/                   # 图片上传存储目录
+│   └── posts/                 # 帖子图片
+├── utils/                     # 工具函数
+│   └── sendMail.js            # 邮件发送工具
 ├── migrate_location_to_coordinates.js # 旧数据迁移脚本
-├── server.js              # Express 主服务入口
-├── package.json           # 依赖与脚本管理
-└── ...                    # 其他文件
+├── server.js                  # 后端主服务入口
+├── testServer.js              # 测试用服务器
+├── package.json               # 依赖与脚本管理
+└── ...                        # 其他文件
 ```
 
 ---
@@ -155,6 +161,14 @@ npm run dev
 前端 API 基础地址（frontend/.env）：VITE_API_BASE_URL 改为你的后端IP。
 前端图片访问 BASE_URL（PostCard.vue）
 
+---如何配置邮件提醒（QQ邮箱）
+- `config/email.js` 填写你的QQ邮箱和授权码：
+  ```js
+  user: '你的QQ邮箱@qq.com',
+  pass: '你的授权码'
+  ```
+- QQ邮箱需开启SMTP服务并获取授权码。
+
 ## 其他说明 Other Notes
 
 - 图片上传存储在服务器本地 `/uploads/posts/`，数据库仅存图片路径。
@@ -165,6 +179,6 @@ npm run dev
 ---
 
 ## 贡献与反馈 Contributing & Feedback
-ljy 后端+前端（失物招领、个人中心、实时通信与匹配） dxt 首页地图功能实现（相关前后端） dzm 测试 zsj 界面美观优化 
+ljy 后端+前端（失物招领、个人中心、实时通信与匹配、邮箱提醒） dxt 首页地图功能实现（相关前后端） dzm 测试 zsj 界面美观优化 
 
 欢迎提出 Issue 或 Pull Request，或联系开发团队交流改进建议！
